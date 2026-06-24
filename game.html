@@ -1,0 +1,490 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
+<title>色块连击 · 通路得分</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: #0f0f1a;
+    color: #e0e0e0;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+  .game-container {
+    background: #1a1a2e;
+    border-radius: 20px;
+    padding: 28px;
+    box-shadow: 0 8px 40px rgba(0,0,0,0.5);
+    max-width: 580px;
+    width: 100%;
+    margin: 20px;
+  }
+  .header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 16px;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .score-box, .streak-box {
+    background: #16162a;
+    border-radius: 12px;
+    padding: 6px 14px;
+    text-align: center;
+    min-width: 72px;
+  }
+  .label {
+    font-size: 10px;
+    color: #888;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+  .value {
+    font-size: 22px;
+    font-weight: 700;
+    color: #fff;
+    line-height: 1.3;
+  }
+  .streak-box.active {
+    background: linear-gradient(135deg,#2a1a4e,#3a1a3a);
+    box-shadow: 0 0 20px rgba(180,80,255,0.15);
+  }
+  .streak-box .value { color: #c084fc; transition: transform .15s; }
+  .streak-box .value.pop { animation: pop .25s ease; }
+  .dist-box .value { color: #60a5fa; }
+
+  .toolbar {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 14px;
+    flex-wrap: wrap;
+  }
+  .btn {
+    border: none;
+    padding: 8px 16px;
+    border-radius: 10px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: transform .1s, box-shadow .2s;
+    white-space: nowrap;
+  }
+  .btn:active { transform: scale(.96); }
+  .btn-primary {
+    background: linear-gradient(135deg,#6d28d9,#7c3aed);
+    color: #fff;
+    box-shadow: 0 0 14px rgba(124,58,237,.25);
+    flex: 1;
+  }
+  .btn-primary:hover { box-shadow: 0 0 22px rgba(124,58,237,.4); }
+  .btn-primary:disabled { opacity: .4; cursor: not-allowed; box-shadow: none; }
+  .btn-secondary {
+    background: #2a2a4a;
+    color: #c0c0f0;
+  }
+  .btn-secondary:hover { background: #3a3a5a; }
+  .progress-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 14px;
+  }
+  .progress-track {
+    flex: 1;
+    height: 4px;
+    background: #22223a;
+    border-radius: 2px;
+    overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg,#7c3aed,#c084fc);
+    border-radius: 2px;
+    transition: width .3s;
+    width: 0%;
+  }
+  .progress-text {
+    font-size: 11px;
+    color: #888;
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+  }
+  .grid-wrap { position: relative; margin-bottom: 14px; }
+  .grid {
+    display: grid;
+    gap: 4px;
+    aspect-ratio: 1;
+    width: 100%;
+  }
+  .cell {
+    border-radius: 6px;
+    cursor: pointer;
+    position: relative;
+    transition: transform .12s, opacity .25s;
+    aspect-ratio: 1;
+  }
+  .cell:hover { transform: scale(1.06); z-index: 2; }
+  .cell:active { transform: scale(.92); }
+
+ .cell.clicked { cursor: default; pointer-events: none; }
+
+  .float-pts {
+    position: absolute;
+    pointer-events: none;
+    font-size: 18px;
+    font-weight: 800;
+    color: #fff;
+    text-shadow: 0 0 10px rgba(255,255,255,.3);
+    z-index: 10;
+    animation: floatUp .8s ease-out forwards;
+  }
+  .float-pts.bonus { color: #fbbf24; text-shadow: 0 0 12px rgba(251,191,36,.5); font-size: 22px; }
+  .float-pts.streak { color: #c084fc; text-shadow: 0 0 16px rgba(192,132,252,.6); font-size: 26px; }
+  .float-pts.path { color: #60a5fa; text-shadow: 0 0 12px rgba(96,165,250,.5); font-size: 20px; }
+  .float-pts .sub { font-size: .6em; font-weight: 500; opacity: .7; display: block; text-align: center; }
+  .stats {
+    display: flex;
+    justify-content: space-between;
+    background: #16162a;
+    border-radius: 12px;
+    padding: 8px 14px;
+    font-size: 12px;
+    color: #888;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .stats span { display: flex; align-items: center; gap: 4px; }
+  .stats .num { color: #ccc; font-weight: 600; font-variant-numeric: tabular-nums; }
+  .stats .hl-p { color: #c084fc; }
+  .stats .hl-b { color: #60a5fa; }
+  .stats .hl-g { color: #fbbf24; }
+  .modal-overlay {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,.65);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    display: flex; justify-content: center; align-items: center;
+    z-index: 100;
+    animation: fadeInO .3s ease;
+  }
+  .modal-overlay.hidden { display: none; }
+  .modal {
+    background: #1a1a2e;
+    border-radius: 20px;
+    padding: 28px 24px;
+    max-width: 420px;
+    width: 92%;
+    max-height: 90vh;
+    overflow-y: auto;
+    box-shadow: 0 12px 60px rgba(0,0,0,.6);
+    animation: slideUp .35s ease;
+  }
+  .modal-title {
+    font-size: 20px; font-weight: 800; text-align: center;
+    margin-bottom: 18px; color: #fff;
+  }
+  .modal-title .emoji { margin-right: 6px; }
+  .result-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin-bottom: 20px;
+  }
+  .result-item {
+    background: #16162a;
+    border-radius: 12px;
+    padding: 12px;
+    text-align: center;
+  }
+  .result-item.full { grid-column: 1 / -1; }
+  .result-item .rl { font-size: 10px; color: #888; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 2px; }
+  .result-item .rv { font-size: 24px; font-weight: 700; color: #fff; }
+  .result-item .rv.gold { color: #fbbf24; }
+  .result-item .rv.purple { color: #c084fc; }
+  .result-item .rv.blue { color: #60a5fa; }
+  .result-item .rs { font-size: 11px; color: #666; margin-top: 2px; }
+  .modal-actions { display: flex; gap: 8px; }
+  .modal-actions button {
+    flex: 1;
+    border: none;
+    font-size: 14px;
+    font-weight: 700;
+    padding: 10px;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: transform .1s;
+  }
+  .modal-actions button:active { transform: scale(.96); }
+  .modal-actions .ma-primary { background: linear-gradient(135deg,#7c3aed,#9333ea); color: #fff; }
+  .modal-actions .ma-secondary { background: #2a2a4a; color: #c0c0f0; }
+  .modal-actions .ma-secondary:hover { background: #3a3a5a; }
+  .lb-empty { text-align: center; color: #666; padding: 30px 0; font-size: 13px; }
+  .lb-list { list-style: none; }
+  .lb-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 8px 0; border-bottom: 1px solid #22223a;
+  }
+  .lb-item:last-child { border-bottom: none; }
+  .lb-rank {
+    width: 26px; height: 26px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px; font-weight: 800; color: #888;
+    background: #22223a; flex-shrink: 0;
+  }
+  .lb-rank.r1 { background: #fbbf24; color: #1a1a2e; }
+  .lb-rank.r2 { background: #94a3b8; color: #1a1a2e; }
+  .lb-rank.r3 { background: #d97706; color: #1a1a2e; }
+  .lb-info { flex: 1; }
+  .lb-score { font-size: 16px; font-weight: 700; color: #fbbf24; }
+  .lb-meta { font-size: 10px; color: #666; margin-top: 2px; }
+  .btn-clear {
+    background: #4a1a1a; color: #f08080; border: none;
+    font-size: 12px; padding: 6px 12px; border-radius: 8px; cursor: pointer; transition: transform .1s;
+  }
+  .btn-clear:active { transform: scale(.96); }
+  .btn-clear:hover { background: #5a2a2a; }
+  .lb-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+  .tip {
+    background: #16162a;
+    border-radius: 10px;
+    padding: 8px 12px;
+    font-size: 11px;
+    color: #666;
+    margin-bottom: 14px;
+    line-height: 1.5;
+  }
+  .tip strong { color: #c084fc; }
+  .tip em { color: #60a5fa; font-style: normal; }
+  @keyframes pop {
+    0% { transform: scale(1); }
+    40% { transform: scale(1.35); }
+    70% { transform: scale(.9); }
+    100% { transform: scale(1); }
+  }
+  @keyframes floatUp {
+    0% { opacity: 1; transform: translateY(0) scale(1); }
+    100% { opacity: 0; transform: translateY(-50px) scale(1.2); }
+  }
+  @keyframes fadeIn {
+    from { opacity: 0; transform: scale(.8); }
+    to { opacity: 1; transform: scale(1); }
+  }
+  @keyframes fadeInO { from { opacity: 0; } to { opacity: 1; } }
+  @keyframes slideUp {
+    from { opacity: 0; transform: translateY(30px) scale(.95); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+  }
+  @keyframes pulseHint {
+    0%,100% { box-shadow: 0 0 0 0 rgba(255,255,255,0); }
+    50% { box-shadow: 0 0 0 3px rgba(255,255,255,.25); }
+  }
+ .grid-enter { animation: fadeIn .35s ease both; }
+ @media (max-width: 500px) {
+    .game-container { padding: 14px; margin: 10px; border-radius: 14px; }
+    .value { font-size: 18px; }
+    .score-box,.streak-box { padding: 4px 10px; min-width: 60px; }
+    .btn { font-size: 11px; padding: 6px 12px; }
+    .stats { font-size: 10px; padding: 6px 10px; }
+    .grid { gap: 3px; }
+    .cell { border-radius: 4px; }
+    .float-pts { font-size: 14px; }
+    .float-pts.streak { font-size: 20px; }
+    .modal { padding: 20px 16px; }
+    .result-item .rv { font-size: 20px; }
+  }
+  .lb-item.highlight{background:linear-gradient(135deg,#1e1e36,#2a1a4e);border:1px solid rgba(124,58,237,.3);border-radius:8px;margin-bottom:6px;padding:6px 8px;display:flex;align-items:center;gap:8px}
+  .lb-item.highlight .lb-rank{background:#7c3aed;color:#fff;box-shadow:0 0 8px rgba(124,58,237,.4);width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;flex-shrink:0}
+  .lb-item.highlight .lb-info .lb-score.me::after{content:'·我';font-size:10px;color:#c084fc;font-weight:600}
+</style>
+</head>
+<body>
+<div class="game-container">
+  <div class="header">
+    <div class="score-box"><div class="label">得分</div><div class="value" id="score">0</div></div>
+    <div class="streak-box" id="streakBox"><div class="label">连击</div><div class="value" id="streak">0</div></div>
+    <div class="streak-box dist-box"><div class="label">距离</div><div class="value" id="distVal">-</div></div>
+  </div>
+ <div class="toolbar">
+    <a class="btn btn-secondary" href="index.html" style="text-decoration:none">← 主页</a>
+   <button class="btn btn-primary" id="btnSettle">🏆 结算</button>
+    <button class="btn btn-secondary" id="btnLB">🏅 排行榜</button>
+    <button class="btn btn-secondary" id="btnNew">🔄 新回合</button>
+  </div>
+  <div class="progress-row">
+    <div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
+    <span class="progress-text" id="progressText">0 / 64</span>
+  </div>
+  <div class="tip">
+    点击方块得分。<strong>同色相邻</strong>连击得分飙升；
+    <em>同色通路</em>（跨格连通）也有加成，距离越近加成越高。
+    策略寻找最长同色链！
+  </div>
+  <div class="grid-wrap"><div class="grid" id="grid"></div></div>
+  <div class="stats">
+    <span>点击 <span class="num" id="clicks">0</span></span>
+    <span>最高连击 <span class="num hl-p" id="bestStreak">0</span></span>
+           <span>单次最高 <span class="num hl-b" id="pathCnt">0</span></span>
+   <span>均分 <span class="num hl-g" id="avgPts">0</span></span>
+ </div>
+</div>
+<div class="modal-overlay hidden" id="settleOverlay">
+  <div class="modal">
+   <div class="modal-title"><span class="emoji">🎯</span>结算</div>
+    <div class="result-grid">
+     <div class="result-item"><div class="rl">得分</div><div class="rv gold" id="sRound">0</div></div>
+      <div class="result-item"><div class="rl">最佳连击</div><div class="rv purple" id="sStreak">0</div><div class="rs">连续同色</div></div>
+          
+      <div class="result-item"><div class="rl">清除</div><div class="rv" id="sCleared">0/64</div><div class="rs">完成度</div></div>
+      <div class="result-item"><div class="rl">均分/击</div><div class="rv" id="sAvg">0</div><div class="rs">效率</div></div>
+    </div>
+    <div class="modal-actions">
+      <button class="ma-primary" id="sNext">▶ 新回合</button>
+      <button class="ma-secondary" id="sLB">🏅 排行榜</button>
+      <button class="ma-secondary" id="sHome">🏠 返回主页</button>
+    </div>
+  </div>
+</div>
+<div class="modal-overlay hidden" id="lbOverlay">
+  <div class="modal">
+    <div class="modal-title"><span class="emoji">🏅</span>排行榜</div>
+    <div class="lb-header">
+      <span style="font-size:12px;color:#666;">最高分 TOP 10</span>
+    </div>
+    <div id="lbBody"><div class="lb-empty">暂无记录</div></div>
+    <div class="modal-actions" style="margin-top:14px;">
+      <button class="ma-secondary" id="lbClose" style="flex:2;">关闭</button>
+    </div>
+  </div>
+</div>
+<script>
+const R=8,C=8,T=R*C;
+const CS=[{bg:'#e74c3c'},{bg:'#3498db'},{bg:'#2ecc71'},{bg:'#f1c40f'},{bg:'#9b59b6'},{bg:'#e67e22'}];
+const B=10,SK='cllb',ML=10;
+ let g=[],sc=0,sk=0,bs=0,tc=0,pc=0,ls=0,mh=0,md=0;
+let lc=null,pr=false,ra=true,sd=false;
+const $=id=>document.getElementById(id);
+const ge=$('grid'),se=$('score'),ske=$('streak'),skb=$('streakBox'),de=$('distVal');
+const ce=$('clicks'),be=$('bestStreak'),ae=$('avgPts'),pe=$('pathCnt');
+const pf=$('progressFill'),pte=$('progressText'),bst=$('btnSettle');
+function rnd(n){return Math.floor(Math.random()*n)}
+function bfs(g,r1,c1,r2,c2){
+ const tc=g[r1][c1];
+ if(r1===r2&&c1===c2)return 0;
+  const vs=new Set([r1*C+c1]),q=[{r:r1,c:c1,d:0}];
+  const D=[[-1,0],[1,0],[0,-1],[0,1]];
+  while(q.length){
+    const {r,c,d}=q.shift();
+    for(const [dr,dc]of D){
+      const nr=r+dr,nc=c+dc;
+     if(nr<0||nr>=R||nc<0||nc>=C)continue;
+     if(nr===r2&&nc===c2)return d+1;
+     if(g[nr][nc]!==tc && g[nr][nc]!==-1)continue;
+     const k=nr*C+nc;
+     if(vs.has(k))continue;
+     vs.add(k);q.push({r:nr,c:nc,d:d+1});
+    }
+  }
+  return null;
+}
+ function hlR(g,r,c,cl){
+   clH();
+   if(cl===undefined)cl=g[r][c];
+   if(cl===-1)return;
+   const vs=new Set([r*C+c]),q=[{r,c}];
+   const D=[[-1,0],[1,0],[0,-1],[0,1]];
+   while(q.length){
+     const {r:cr,c:cc}=q.shift();
+     for(const [dr,dc]of D){
+       const nr=cr+dr,nc=cc+dc;
+       if(nr<0||nr>=R||nc<0||nc>=C)continue;
+       if(g[nr][nc]!==cl)continue;
+       const k=nr*C+nc;
+       if(vs.has(k))continue;
+       vs.add(k);q.push({r:nr,c:nc});
+     }
+   }
+   for(const k of vs){const ce=ge.children[k];if(ce&&!ce.classList.contains('clicked'))ce.classList.add('hint-path')}
+ }
+ function clH(){ge.querySelectorAll('.hint-path').forEach(c=>c.classList.remove('hint-path'))}
+function cR(){let n=0;for(let r=0;r<R;r++)for(let c=0;c<C;c++)if(g[r][c]!==-1)n++;return n}
+function uP(){const rm=cR(),cl=T-rm,p=cl/T*100;pf.style.width=p+'%';pte.textContent=cl+'/'+T;return rm}
+function gG(){const g=[];for(let r=0;r<R;r++){const w=[];for(let c=0;c<C;c++)w.push(rnd(CS.length));g.push(w)}const ng=g.map(r=>[...r]);for(let r=0;r<R;r++){for(let c=0;c<C;c++){if(Math.random()<0.15){const m=Array(CS.length).fill(0);for(const[dr,dc]of[[-1,0],[1,0],[0,-1],[0,1]]){const nr=r+dr,nc=c+dc;if(nr>=0&&nr<R&&nc>=0&&nc<C)m[g[nr][nc]]++}let bi=0,bv=0;for(let i=0;i<CS.length;i++)if(m[i]>bv){bv=m[i];bi=i}if(bv>0)ng[r][c]=bi}}}return ng}
+function reG(){ge.innerHTML='';ge.style.gridTemplateColumns='repeat('+C+',1fr)';let di=0;
+for(let r=0;r<R;r++){for(let c=0;c<C;c++){const ce=document.createElement('div');
+ce.className='cell grid-enter';ce.style.setProperty('animation-delay',di*10+'ms');
+ce.dataset.row=r;ce.dataset.col=c;ce.dataset.idx=di;
+const ci=g[r][c];if(ci===-1){ce.classList.add('clicked');ce.style.background='#2a2a3e'}
+else ce.style.background=CS[ci].bg;
+ce.addEventListener('click',()=>hC(r,c,ce,di));ge.appendChild(ce);di++}}uP()}
+function sF(r,c,pts,ty,sub){
+  const wr=ge.parentElement,cs=(ge.offsetWidth-(C-1)*4)/C,x=c*(cs+4),y=r*(cs+4);
+  const el=document.createElement('div');el.className='float-pts';
+  if(ty==='sk')el.classList.add('streak');else if(ty==='bn')el.classList.add('bonus');else if(ty==='pt')el.classList.add('path');
+  if(sub)el.innerHTML='+'+pts+'<span class="sub">'+sub+'</span>';else el.textContent='+'+pts;
+  el.style.left=(x+cs/2-20)+'px';el.style.top=(y+cs/2-8)+'px';
+  wr.appendChild(el);setTimeout(()=>el.remove(),800);
+}
+function bestScore(){try{const d=localStorage.getItem("cllb");const lb=d?JSON.parse(d):[];return lb.length?Math.max(...lb.map(e=>e.score)).toLocaleString():"0"}catch{return"0"}} function uS(){se.textContent=sc;ske.textContent=sk;skb.classList.toggle('active',sk>=1);
+ce.textContent=tc;be.textContent=bs;pe.textContent=mh.toLocaleString();
+ ae.textContent=tc>0?Math.round(sc/tc):0}
+ function calcComboBonus(dt){
+   if(!dt)return 0;
+   if(dt===1)return 1.0;
+   const MD=14;
+   const t=Math.min(dt-2,MD-2)/(MD-2);
+   return Math.max(0.1,0.9-0.8*t)
+ }
+ function hC(r,c,ce,di){
+  if(pr||!ra)return;const ci=g[r][c];if(ci===-1)return;pr=true;
+  clH();ge.querySelectorAll('.last-clicked').forEach(el=>el.classList.remove('last-clicked'));
+  tc++;let cn='none',dt=0,pts=B,ft='n',sb='';
+ if(lc){if(ci===lc.cl){const pd=bfs(g,r,c,lc.r,lc.c);
+  if(pd!==null){dt=pd;cn=dt===1?'a':'p';if(cn==='p')pc++}}}
+ if(cn!=='none'){sk++;if(sk>bs)bs=sk;
+ pts=Math.round(ls*(1+calcComboBonus(dt)));if(pts>mh)mh=pts;if(dt>md)md=dt;
+ if(cn==='p'){ft='pt';sb='通路 '+dt+'格'}else ft=sk>=2?'sk':'bn';de.textContent=dt}
+  else{sk=0;pts=B;ft='n';de.textContent='-'}
+ sc+=pts;lc={r,c,cl:ci};ls=pts;g[r][c]=-1;
+  ce.classList.add('clicked');ce.style.background='#2a2a3e';ce.classList.add('last-clicked');
+  uS();uP();if(sk>0){ske.classList.remove('pop');void ske.offsetWidth;ske.classList.add('pop')}
+  sF(r,c,pts,ft,sb);pr=false;if(cR()>0)setTimeout(()=>hlR(g,r,c,ci),100);cE()
+}
+function cE(){if(cR()===0&&ra){ra=false;bst.disabled=true;setTimeout(()=>sS(),400)}}
+function lL(){try{const d=localStorage.getItem(SK);return d?JSON.parse(d):[]}catch{return[]}}
+function sL(lb){try{localStorage.setItem(SK,JSON.stringify(lb.slice(0,ML)))}catch{}}
+function aL(s,bsk,pct,av,mh,md){const lb=lL();lb.push({score:s,bestStreak:bsk,pathCount:pct,avgPts:av,maxHit:mh,maxDist:md,date:new Date().toLocaleDateString("zh-CN")});lb.sort((a,b)=>b.score-a.score);sL(lb);return lb}
+function rL(lb){const me=getDeviceId();const bd=$('lbBody');if(!lb||!lb.length){bd.innerHTML='<div class="lb-empty">暂无记录</div>';return}let h='<ul class="lb-list">';lb.forEach((e,i)=>{const isMe=e.deviceId===me;const rc=i===0?'r1':i===1?'r2':i===2?'r3':'';const pn=e.playerName||'';const g=e.totalGames||0;h+='<li class="lb-item'+(isMe?' highlight':'')+'"><div class="lb-rank '+(isMe?'':'')+rc+'">'+(i+1)+'</div><div class="lb-info"><div class="lb-score'+(isMe?' me':'')+'">'+e.score.toLocaleString()+'</div><div class="lb-meta">'+(isMe?'<b>'+pn+'</b>':pn)+' · 连击'+e.bestStreak+' · 单次'+(e.maxHit||0)+' · '+g+'场</div></div></li>'});h+='</ul>';bd.innerHTML=h}function getDeviceId(){var p=localStorage.getItem('playerId');if(p)return p;let id=localStorage.getItem('deviceId');if(!id){id='player_'+Math.random().toString(36).substr(2,6);localStorage.setItem('deviceId',id)}return id}
+function sS(){if(sd)return;sd=true;const cl=T-cR(),av=tc>0?Math.round(sc/tc):0;
+ $('sRound').textContent=sc.toLocaleString();
+ $('sStreak').textContent=bs;
+$('sCleared').textContent=cl+'/'+T;$('sAvg').textContent=av;
+$('settleOverlay').classList.remove('hidden');aL(sc,bs,pc,av,mh,md);
+ (function(){const did=getDeviceId();const pn=localStorage.getItem('playerName')||'';fetch('/api/submit',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({deviceId:did,playerName:pn,score:sc,bestStreak:bs,pathCount:pc,maxHit:mh,avgPts:av,maxDist:md})}).catch(function(e){console.error('提交失败:',e)})})();
+ $('sLB').onclick=()=>{window.location.href='leaderboard.html'};
+ $('sHome').onclick=()=>{window.location.href='index.html'};
+ $('sNext').onclick=()=>{$('settleOverlay').classList.add('hidden');nR()}}
+function mS(){if(!ra||sd)return;ra=false;bst.disabled=true;sS()}
+function oL(){$('lbOverlay').classList.remove('hidden');const bd=$('lbBody');bd.innerHTML='<div class="lb-empty">加载中...</div>';fetch('/api/rank').then(function(r){return r.json()}).then(function(data){rL(data.slice(0,ML))}).catch(function(){rL(lL().slice(0,ML))})}
+function nR(){if(pr&&ra)return;
+ g=gG();sk=0;bs=0;tc=0;pc=0;lc=null;mh=0;md=0;ls=0;sc=0;ra=true;sd=false;pr=false;
+clH();ge.querySelectorAll('.last-clicked').forEach(el=>el.classList.remove('last-clicked'));
+skb.classList.toggle('active',false);de.textContent='-';bst.disabled=false;
+uS();reG()}
+g=gG();reG();uP();bst.disabled=false;
+$('btnNew').addEventListener('click',()=>{if(!ra||confirm('当前游戏未结算，确定开始新游戏？'))nR()});
+bst.addEventListener('click',mS);
+$('btnLB').addEventListener('click',oL);
+$('lbClose').addEventListener('click',()=>$('lbOverlay').classList.add('hidden'));
+$('settleOverlay').addEventListener('click',e=>{if(e.target===$('settleOverlay'))$('settleOverlay').classList.add('hidden')});
+$('lbOverlay').addEventListener('click',e=>{if(e.target===$('lbOverlay'))$('lbOverlay').classList.add('hidden')});
+</script>
+</body>
+</html>

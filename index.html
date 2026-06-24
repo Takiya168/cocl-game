@@ -1,0 +1,288 @@
+ <!DOCTYPE html>
+ <html lang="zh-CN">
+ <head>
+ <meta charset="UTF-8">
+ <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
+ <title>色块连击 · 通路得分</title>
+ <style>
+   *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+   body{
+     background:#0f0f1a;
+     color:#e0e0e0;
+     font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
+     min-height:100vh;
+     display:flex;
+     justify-content:center;
+     align-items:center;
+     overflow-x:hidden;
+   }
+   .bg-blocks{
+     position:fixed;inset:0;
+     pointer-events:none;
+     overflow:hidden;
+     z-index:0;
+   }
+   .bg-block{
+     position:absolute;
+     width:32px;height:32px;
+     border-radius:6px;
+     opacity:.06;
+     animation:bgFloat linear infinite;
+   }
+   @keyframes bgFloat{
+     0%{transform:translateY(100vh) rotate(0deg);opacity:0}
+     10%{opacity:.07}
+     90%{opacity:.07}
+     100%{transform:translateY(-10vh) rotate(360deg);opacity:0}
+   }
+   .app{
+     position:relative;
+     z-index:1;
+     width:100%;
+     max-width:520px;
+     padding:20px;
+   }
+   .card{
+     background:#1a1a2e;
+     border-radius:20px;
+     padding:36px 28px;
+     box-shadow:0 8px 40px rgba(0,0,0,.5);
+   }
+   .hero{text-align:center;margin-bottom:28px}
+   .hero-icon{
+     width:72px;height:72px;
+     margin:0 auto 16px;
+     border-radius:18px;
+     background:linear-gradient(135deg,#7c3aed,#a855f7);
+     display:flex;align-items:center;justify-content:center;
+     font-size:32px;
+     box-shadow:0 0 40px rgba(124,58,237,.3);
+   }
+   .hero-title{
+     font-size:40px;font-weight:900;
+     background:linear-gradient(135deg,#c084fc,#60a5fa,#fbbf24);
+     -webkit-background-clip:text;
+     -webkit-text-fill-color:transparent;
+     background-clip:text;
+     letter-spacing:2px;
+     margin-bottom:6px;
+   }
+   .hero-sub{
+     font-size:18px;color:#888;font-weight:400;
+     letter-spacing:4px;
+     margin-bottom:14px;
+   }
+   .hero-desc{
+     font-size:13px;color:#666;
+     line-height:1.7;
+     max-width:360px;margin:0 auto;
+   }
+   .hero-desc strong{color:#c084fc}
+   .hero-desc em{color:#60a5fa;font-style:normal}
+   .hero-desc .gold{color:#fbbf24;font-weight:600}
+   .stats-row{
+     display:grid;
+     grid-template-columns:1fr 1fr 1fr 1fr;
+     gap:8px;
+     margin-bottom:24px;
+   }
+   .stat-card{
+     background:#16162a;
+     border-radius:12px;
+     padding:12px 8px;
+     text-align:center;
+   }
+   .stat-card .sl{
+     font-size:9px;color:#666;
+     text-transform:uppercase;letter-spacing:1px;
+     margin-bottom:2px;
+   }
+   .stat-card .sv{
+     font-size:20px;font-weight:700;
+     font-variant-numeric:tabular-nums;
+   }
+   .stat-card .sv.gold{color:#fbbf24}
+   .stat-card .sv.purple{color:#c084fc}
+   .stat-card .sv.blue{color:#60a5fa}
+   .stat-card .sv.green{color:#34d399}
+   .actions{display:flex;flex-direction:column;gap:10px;margin-bottom:20px}
+   .btn-play{
+     display:block;width:100%;
+     border:none;border-radius:14px;
+     padding:16px;font-size:18px;font-weight:800;
+     background:linear-gradient(135deg,#7c3aed,#a855f7);
+     color:#fff;cursor:pointer;
+     box-shadow:0 0 30px rgba(124,58,237,.3);
+     transition:transform .15s,box-shadow .2s;
+     text-decoration:none;text-align:center;
+     letter-spacing:2px;
+   }
+   .btn-play:hover{transform:translateY(-2px);box-shadow:0 0 40px rgba(124,58,237,.45)}
+   .btn-play:active{transform:scale(.97)}
+   .btn-row{display:flex;gap:10px}
+   .btn-nav{
+     flex:1;
+     display:flex;align-items:center;justify-content:center;gap:6px;
+     border:none;border-radius:12px;
+     padding:12px;font-size:14px;font-weight:600;
+     background:#2a2a4a;color:#c0c0f0;cursor:pointer;
+     text-decoration:none;transition:background .2s,transform .1s;
+   }
+   .btn-nav:hover{background:#3a3a5a}
+   .btn-nav:active{transform:scale(.96)}
+   .btn-nav .ico{font-size:18px}
+   .recent-section{
+     background:#16162a;
+     border-radius:12px;
+     padding:14px;
+     margin-bottom:16px;
+   }
+   .recent-section .rs-title{
+     font-size:11px;color:#666;letter-spacing:1px;
+     text-transform:uppercase;margin-bottom:8px;
+   }
+   .recent-item{
+     display:flex;align-items:center;justify-content:space-between;
+     font-size:13px;padding:4px 0;
+   }
+   .recent-item .ri-score{color:#fbbf24;font-weight:700}
+   .recent-item .ri-meta{color:#555;font-size:11px}
+   .recent-empty{color:#444;font-size:12px;text-align:center;padding:8px 0}
+   .tips{
+     background:#16162a;
+     border-radius:12px;
+     padding:14px;
+   }
+   .tips .tip-row{
+     display:flex;gap:10px;align-items:flex-start;
+     font-size:12px;color:#666;line-height:1.6;
+   }
+   .tips .tip-row+.tip-row{margin-top:8px;padding-top:8px;border-top:1px solid #22223a}
+   .tips .tip-num{
+     width:22px;height:22px;border-radius:50%;
+     background:#22223a;color:#888;
+     font-size:11px;font-weight:700;
+     display:flex;align-items:center;justify-content:center;
+     flex-shrink:0;margin-top:1px;
+   }
+   .tips .tip-highlight{color:#c084fc;font-weight:600}
+   .tips .tip-blue{color:#60a5fa}
+   .tips .tip-gold{color:#fbbf24}
+ .footer{
+     text-align:center;margin-top:16px;
+     font-size:11px;color:#333;
+   }
+   @media(max-width:480px){
+     .card{padding:24px 16px;border-radius:16px}
+     .hero-title{font-size:30px}
+     .hero-sub{font-size:15px}
+     .stats-row{grid-template-columns:1fr 1fr}
+     .btn-play{font-size:16px;padding:14px}
+     .hero-icon{width:56px;height:56px;font-size:24px;border-radius:14px}
+   }
+ </style>
+ </head>
+ <body>
+ <div class="bg-blocks" id="bgBlocks"></div>
+ <div class="app">
+   <div class="card">
+     <div class="hero">
+       <div class="hero-icon">🎮</div>
+       <div class="hero-title">色块连击</div>
+       <div class="hero-sub">· 通路得分 ·</div>
+       <div class="hero-desc">
+         点击方块得分。<strong>同色相邻</strong>连击得分飙升；
+         <em>同色通路</em>（跨格连通）加成，距离越近越高。
+         策略寻找最长 <span class="gold">同色链</span>！
+       </div>
+     </div>
+     <div class="stats-row" id="statsRow">
+       <div class="stat-card"><div class="sl">场次</div><div class="sv gold" id="stGames">0</div></div>
+       <div class="stat-card"><div class="sl">最高分</div><div class="sv purple" id="stBest">0</div></div>
+       <div class="stat-card"><div class="sl">总分</div><div class="sv blue" id="stTotal">0</div></div>
+       <div class="stat-card"><div class="sl">最佳连击</div><div class="sv green" id="stStreak">0</div></div>
+     </div>
+     <div class="actions">
+       <a class="btn-play" href="game.html" id="playBtn">▶ 开始游戏</a>
+       <div class="btn-row">
+         <a class="btn-nav" href="leaderboard.html"><span class="ico">🏅</span> 排行榜</a>
+         <a class="btn-nav" href="profile.html"><span class="ico">👤</span> 个人主页</a>
+       </div>
+     </div>
+     <div class="recent-section" id="recentSection">
+       <div class="rs-title">最近战绩</div>
+       <div id="recentBody"><div class="recent-empty">暂无记录</div></div>
+     </div>
+     <div class="tips">
+       <div class="tip-row">
+         <div class="tip-num">1</div>
+         <div>点击任意色块开始，<span class="tip-highlight">相邻同色</span>触发连击，点数暴涨</div>
+       </div>
+       <div class="tip-row">
+         <div class="tip-num">2</div>
+         <div>点击与上次相同颜色的色块，<span class="tip-blue">自动寻路</span>计算通路距离，距离越近加成越高</div>
+       </div>
+       <div class="tip-row">
+         <div class="tip-num">3</div>
+         <div>清空全部 64 格即可 <span class="tip-gold">结算</span>；也可随时主动结算，锁定本轮得分</div>
+       </div>
+     </div>
+   </div>
+   <!-- bottom nav -->
+ <div class="footer">色块连击 · 通路得分</div>
+ </div>
+ <script>
+   (function(){
+     const colors=['#e74c3c','#3498db','#2ecc71','#f1c40f','#9b59b6','#e67e22'];
+     const c=document.getElementById('bgBlocks');
+     for(let i=0;i<18;i++){
+       const el=document.createElement('div');
+       el.className='bg-block';
+       el.style.left=Math.random()*100+'%';
+       el.style.background=colors[i%colors.length];
+       el.style.width=(20+Math.random()*24)+'px';
+       el.style.height=el.style.width;
+       el.style.borderRadius=(3+Math.random()*6)+'px';
+       el.style.animationDuration=(15+Math.random()*25)+'s';
+       el.style.animationDelay=(Math.random()*20)+'s';
+       c.appendChild(el);
+     }
+   })();
+   const SK='cllb';
+   function getDeviceId(){
+     var p=localStorage.getItem('playerId');if(p)return p;
+     let id=localStorage.getItem('deviceId');
+     if(!id){id='player_'+Math.random().toString(36).substr(2,6);localStorage.setItem('deviceId',id)}
+     return id
+   }
+   function loadLB(){
+     try{const d=localStorage.getItem(SK);return d?JSON.parse(d):[]}catch{return[]}
+   }
+   function updateStats(){
+     var pid=localStorage.getItem('playerId');
+     if(pid){
+       fetch('/api/personal?deviceId='+encodeURIComponent(pid)).then(function(r){return r.json()}).then(function(data){
+         if(data&&data.length){renderStats(data);return}
+         renderStats([]);
+       }).catch(function(){var lb=loadLB();if(lb.length)renderStats(lb)});
+     }else{
+       var lb=loadLB();if(lb.length)renderStats(lb);
+     }
+   }
+   function renderStats(lb){
+     document.getElementById('stGames').textContent=lb.length;
+     if(lb.length){
+       let best=0,total=0,bs=0;
+       lb.forEach(function(e){if(e.score>best)best=e.score;total+=e.score;if(e.bestStreak>bs)bs=e.bestStreak});
+       document.getElementById('stBest').textContent=best.toLocaleString();
+       document.getElementById('stTotal').textContent=total.toLocaleString();
+       document.getElementById('stStreak').textContent=bs;
+       const last=lb[0];
+       const d=last.date||(last.createdAt?new Date(last.createdAt).toLocaleDateString('zh-CN'):'');
+       document.getElementById('recentBody').innerHTML='<div class="recent-item"><div>最近一局</div><div><span class="ri-score">'+last.score.toLocaleString()+'</span> <span class="ri-meta">'+d+'</span></div></div>';
+     }
+   }
+   updateStats();
+ </script>
+ </body>
+ </html>

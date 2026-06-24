@@ -1,0 +1,739 @@
+<!DOCTYPE html>
+ <html lang="zh-CN">
+ <head>
+ <meta charset="UTF-8">
+ <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
+ <title>个人主页 · 色块连击</title>
+ <style>
+   *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+   body{
+     background:#0f0f1a;
+     color:#e0e0e0;
+     font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
+     min-height:100vh;
+     display:flex;
+     justify-content:center;
+     padding:20px;
+   }
+   .app{
+     width:100%;
+     max-width:600px;
+     padding-top:20px;
+     padding-bottom:40px;
+   }
+   .page-header{
+     display:flex;
+     align-items:center;
+     gap:12px;
+     margin-bottom:20px;
+   }
+   .btn-back{
+     width:40px;height:40px;border-radius:12px;
+     border:none;background:#2a2a4a;color:#c0c0f0;
+     font-size:18px;cursor:pointer;
+     display:flex;align-items:center;justify-content:center;
+     text-decoration:none;transition:background .2s;
+     flex-shrink:0;
+   }
+   .btn-back:hover{background:#3a3a5a}
+   .page-title{
+     font-size:24px;font-weight:800;
+     background:linear-gradient(135deg,#c084fc,#a855f7);
+     -webkit-background-clip:text;
+     -webkit-text-fill-color:transparent;
+     background-clip:text;
+   }
+   .page-sub{font-size:12px;color:#555;margin-left:auto}
+   .section-title{
+     font-size:14px;font-weight:700;color:#888;
+     letter-spacing:1px;text-transform:uppercase;
+     margin-bottom:12px;
+   }
+   .stats-grid{
+     display:grid;
+     grid-template-columns:1fr 1fr 1fr;
+     gap:8px;
+     margin-bottom:24px;
+   }
+   .stat-card{
+     background:#1a1a2e;
+     border-radius:14px;
+     padding:16px 12px;
+     text-align:center;
+   }
+   .stat-card.wide{grid-column:span 3}
+   .stat-card .s-icon{font-size:22px;margin-bottom:4px}
+   .stat-card .s-val{
+     font-size:26px;font-weight:800;
+     font-variant-numeric:tabular-nums;
+     line-height:1.2;
+   }
+   .stat-card .s-val.gold{color:#fbbf24}
+   .stat-card .s-val.purple{color:#c084fc}
+   .stat-card .s-val.blue{color:#60a5fa}
+   .stat-card .s-val.green{color:#34d399}
+   .stat-card .s-val.pink{color:#f472b6}
+   .stat-card .s-val.orange{color:#fb923c}
+   .stat-card .s-lbl{
+     font-size:10px;color:#555;
+     text-transform:uppercase;letter-spacing:1px;
+     margin-top:2px;
+   }
+   .rank-badge{
+     background:#1a1a2e;
+     border-radius:14px;
+     padding:16px;
+     display:flex;
+     align-items:center;
+     gap:16px;
+     margin-bottom:24px;
+     cursor:pointer;
+     transition:background .2s,transform .1s;
+   }
+   .rank-badge:hover{background:#22223e;transform:scale(1.01)}
+   .rank-badge:active{transform:scale(.97)}
+   .rank-badge .rb-icon{
+     width:56px;height:56px;border-radius:16px;
+     background:linear-gradient(135deg,#7c3aed,#a855f7);
+     display:flex;align-items:center;justify-content:center;
+     font-size:28px;flex-shrink:0;
+     box-shadow:0 0 24px rgba(124,58,237,.2);
+   }
+   .rank-badge .rb-info{flex:1}
+   .rank-badge .rb-title{
+     font-size:18px;font-weight:700;
+     color:#e0e0e0;
+     transition:color .2s;
+   }
+   .rank-badge .rb-title .edit-hint{
+     font-size:12px;font-weight:400;
+     color:#666;
+     margin-left:8px;
+   }
+   .rank-badge .rb-title .edit-hint:hover{color:#a855f7}
+   .rank-badge .rb-sub{font-size:11px;color:#555;margin-top:2px}
+   .rank-badge .rb-level{
+     font-size:11px;color:#888;
+     background:#22223a;border-radius:8px;
+     padding:4px 10px;white-space:nowrap;
+   }
+   /* ===== 姓名编辑弹窗 ===== */
+   .modal-overlay {
+     position:fixed;inset:0;
+     background:rgba(0,0,0,.7);
+     backdrop-filter:blur(6px);
+     -webkit-backdrop-filter:blur(6px);
+     display:flex;justify-content:center;align-items:center;
+     z-index:1000;
+     animation:fadeInO .25s ease;
+   }
+   .modal-overlay.hidden{display:none}
+   .modal{
+     background:#1a1a2e;
+     border-radius:20px;
+     padding:32px 28px;
+     max-width:400px;
+     width:92%;
+     box-shadow:0 12px 60px rgba(0,0,0,.6);
+     animation:slideUp .3s ease;
+   }
+   .modal-title{
+     font-size:22px;font-weight:800;
+     text-align:center;
+     margin-bottom:6px;color:#fff;
+   }
+   .modal-title .emoji{margin-right:8px}
+   .modal-desc{
+     text-align:center;color:#888;font-size:14px;
+     margin-bottom:20px;
+   }
+   .modal-input{
+     width:100%;
+     background:#22223a;
+     border:1px solid #444;
+     border-radius:10px;
+     padding:12px 16px;
+     color:#fff;
+     font-size:18px;
+     outline:none;
+     transition:border-color .2s;
+     box-sizing:border-box;
+     text-align:center;
+   }
+   .modal-input:focus{border-color:#7c3aed}
+   .modal-input::placeholder{color:#555;text-align:center}
+   .modal-actions{
+     display:flex;
+     gap:10px;
+     margin-top:16px;
+   }
+   .modal-actions button{
+     flex:1;
+     border:none;
+     font-size:15px;
+     font-weight:700;
+     padding:12px;
+     border-radius:10px;
+     cursor:pointer;
+     transition:transform .1s;
+   }
+   .modal-actions button:active{transform:scale(.96)}
+   .modal-actions .ma-primary{
+     background:linear-gradient(135deg,#7c3aed,#9333ea);
+     color:#fff;
+   }
+   .modal-actions .ma-secondary{
+     background:#2a2a4a;
+     color:#c0c0f0;
+   }
+   .modal-actions .ma-secondary:hover{background:#3a3a5a}
+   .modal-error{
+     color:#f87171;font-size:13px;
+     text-align:center;margin-top:10px;
+     display:none;
+   }
+   .ach-grid{
+     display:grid;
+     grid-template-columns:1fr 1fr;
+     gap:8px;
+     margin-bottom:24px;
+   }
+   .ach-card{
+     background:#1a1a2e;
+     border-radius:12px;
+     padding:12px 14px;
+     display:flex;
+     align-items:center;
+     gap:12px;
+     transition:all .2s;
+   }
+   .ach-card.locked{
+     opacity:.3;
+     filter:grayscale(.8);
+   }
+   .ach-card.unlocked{
+     background:linear-gradient(135deg,#1a1a2e,#1e1236);
+     border:1px solid rgba(124,58,237,.15);
+   }
+   .ach-icon{
+     width:44px;height:44px;border-radius:12px;
+     display:flex;align-items:center;justify-content:center;
+     font-size:22px;
+     background:#22223a;flex-shrink:0;
+   }
+   .ach-card.unlocked .ach-icon{background:#2a1a4e}
+   .ach-info{flex:1;min-width:0}
+   .ach-name{font-size:13px;font-weight:700;color:#e0e0e0}
+   .ach-desc{font-size:10px;color:#555;margin-top:2px}
+   .ach-card.unlocked .ach-name{color:#c084fc}
+   .history-wrap{
+     background:#1a1a2e;
+     border-radius:14px;
+     overflow:hidden;
+     margin-bottom:24px;
+   }
+   .history-table{width:100%;border-collapse:collapse}
+   .history-table th{
+     font-size:10px;color:#555;font-weight:600;
+     text-transform:uppercase;letter-spacing:1px;
+     text-align:left;padding:10px 14px;
+     border-bottom:1px solid #22223a;
+     background:#16162a;
+   }
+   .history-table th:last-child{text-align:right}
+   .history-table td{
+     font-size:13px;padding:8px 14px;
+     border-bottom:1px solid #1e1e32;
+   }
+   .history-table td:last-child{text-align:right}
+   .history-table tr:last-child td{border-bottom:none}
+   .h-score{color:#fbbf24;font-weight:700}
+   .h-streak{color:#c084fc;font-weight:600}
+   .h-path{color:#60a5fa;font-weight:600}
+   .h-date{color:#555;font-size:11px}
+   .h-round{color:#666;font-size:11px}
+   .history-empty{
+     padding:30px 14px;text-align:center;
+     color:#444;font-size:13px;
+   }
+   .footer{
+     text-align:center;margin-top:16px;
+     font-size:11px;color:#333;
+   }
+   @keyframes fadeInO{from{opacity:0}to{opacity:1}}
+   @keyframes slideUp{from{opacity:0;transform:translateY(30px)scale(.95)}to{opacity:1;transform:translateY(0)scale(1)}}
+   @media(max-width:480px){
+     .stats-grid{grid-template-columns:1fr 1fr}
+     .stat-card.wide{grid-column:span 2}
+     .stat-card .s-val{font-size:20px}
+     .ach-grid{grid-template-columns:1fr}
+     .page-title{font-size:20px}
+     .history-table th,.history-table td{padding:6px 10px;font-size:11px}
+     .profile-card{padding:18px}
+     .pc-icon{width:56px;height:56px;font-size:28px;box-shadow:0 0 24px rgba(124,58,237,.2)}
+     .pc-nickname{font-size:20px}
+     .id-badge{font-size:13px;padding:4px 12px}
+     .auth-input{padding:10px 12px;font-size:13px;margin-bottom:10px}
+     .auth-tab{padding:10px;font-size:14px}
+     .auth-btn{padding:10px;font-size:14px}
+     .modal{padding:20px 16px}
+     .modal-title{font-size:18px}
+   }
+ </style>
+ <style>
+.profile-card{background:#1a1a2e;border-radius:20px;padding:32px;margin-bottom:28px;cursor:pointer;box-shadow:0 8px 40px rgba(0,0,0,.4);transition:transform .2s,box-shadow .25s;position:relative;z-index:1}
+.profile-card:hover{transform:translateY(-2px);box-shadow:0 12px 50px rgba(0,0,0,.55)}
+.profile-card:active{transform:scale(.97)}
+.pc-main{display:flex;align-items:center;gap:22px}
+.pc-icon{width:80px;height:80px;border-radius:22px;background:linear-gradient(135deg,#7c3aed,#a855f7);display:flex;align-items:center;justify-content:center;font-size:38px;flex-shrink:0;box-shadow:0 0 50px rgba(124,58,237,.35)}
+.pc-body{flex:1;min-width:0}
+.pc-nickname{font-size:26px;font-weight:800;color:#f0f0f0;line-height:1.3;letter-spacing:.5px}
+.pc-subline{font-size:14px;color:#666;margin-top:6px}
+.id-badge{display:inline-block;background:linear-gradient(135deg,#2a1a4e,#1a1a3e);padding:6px 20px;border-radius:10px;font-size:16px;color:#fbbf24;font-weight:700;letter-spacing:.5px;border:1px solid rgba(124,58,237,.3);margin-top:6px;box-shadow:0 0 16px rgba(124,58,237,.1)}
+.auth-header{display:flex;gap:0;margin-bottom:20px;border-radius:10px;overflow:hidden;border:1px solid #333}
+.auth-tab{flex:1;border:none;background:#1e1e36;color:#888;font-size:15px;font-weight:600;padding:12px;cursor:pointer;transition:all .2s}
+.auth-tab.active{background:linear-gradient(135deg,#7c3aed,#9333ea);color:#fff}
+.auth-tab:not(.active):hover{background:#2a2a4e}
+.auth-input{width:100%;background:#22223a;border:1px solid #3a3a5a;border-radius:10px;padding:12px 14px;color:#fff;font-size:14px;outline:none;transition:border-color .2s,box-shadow .2s;box-sizing:border-box;margin-bottom:12px}
+.auth-input:focus{border-color:#7c3aed;box-shadow:0 0 0 3px rgba(124,58,237,.1)}
+.auth-input::placeholder{color:#555}
+.pass-row{display:flex;gap:12px;margin-bottom:8px}
+.pass-row .auth-input{margin-bottom:0;flex:1}
+.auth-btn{width:100%;border:none;border-radius:10px;padding:12px;font-size:15px;font-weight:700;background:linear-gradient(135deg,#7c3aed,#9333ea);color:#fff;cursor:pointer;transition:transform .15s,box-shadow .2s;margin-top:4px}
+.auth-btn:hover{box-shadow:0 0 24px rgba(124,58,237,.3)}
+.auth-btn:active{transform:scale(.97)}
+.auth-btn:disabled{opacity:.5;cursor:not-allowed}
+.auth-err{color:#f87171;font-size:13px;text-align:center;margin-bottom:8px}
+.nick-msg{font-size:12px;margin:-10px 0 10px 2px;min-height:0}
+.success-modal{text-align:center}
+.suc-icon{font-size:54px;margin-bottom:10px}
+.suc-title{font-size:24px;font-weight:800;color:#fff;margin-bottom:20px}
+.suc-body{background:#16162a;border-radius:14px;padding:16px 20px;margin-bottom:16px;text-align:left;border:1px solid #2a2a4a}
+.suc-row{display:flex;justify-content:space-between;padding:8px 0;font-size:14px;color:#aaa;border-bottom:1px solid #22223a}
+.suc-row:last-child{border-bottom:none}
+.suc-row strong{color:#c084fc;font-size:16px;letter-spacing:1px}
+.suc-warn{color:#fbbf24;font-size:13px;margin-bottom:10px;font-weight:600;background:rgba(251,191,36,.08);padding:10px 14px;border-radius:8px;line-height:1.5}
+.suc-hint{color:#666;font-size:12px;margin-bottom:20px}
+.suc-btn{width:100%;border:none;border-radius:10px;padding:12px;font-size:15px;font-weight:700;background:linear-gradient(135deg,#7c3aed,#9333ea);color:#fff;cursor:pointer;transition:transform .15s}
+.suc-btn:hover{box-shadow:0 0 20px rgba(124,58,237,.3)}
+.suc-btn:active{transform:scale(.97)}
+</style>
+</head>
+ <body>
+ <div class="app">
+   <!-- header -->
+   <div class="page-header">
+     <a class="btn-back" href="index.html">←</a>
+     <div class="page-title">👤 个人主页</div>
+     <div class="page-sub" id="rankSub">统计总览</div>
+   </div>
+
+   <!-- ===== 个人资料卡片 ===== -->
+   <div class="profile-card" id="profileCard">
+     <div class="pc-main">
+       <div class="pc-icon">🎮</div>
+       <div class="pc-body">
+         <div class="pc-nickname" id="pcNickDisplay">点击绑定账号</div>
+         <div class="pc-subline" id="pcSubDisplay">✨ 注册后可跨设备同步数据</div>
+       </div>
+     </div>
+   </div>
+
+   <!-- ===== 登录/注册弹窗 ===== -->
+   <div class="modal-overlay hidden" id="authModal">
+     <div class="modal">
+       <div class="auth-header">
+         <button class="auth-tab active" data-tab="login">登录</button>
+         <button class="auth-tab" data-tab="register">注册</button>
+       </div>
+       <!-- 登录 -->
+       <div id="loginForm">
+         <input class="auth-input" id="loginAccount" placeholder="昵称 或 ID" maxlength="20">
+         <input class="auth-input" type="password" id="loginPass" placeholder="密码" maxlength="50">
+         <div class="auth-err" id="authErr" style="display:none"></div>
+         <button class="auth-btn" id="loginSubmit">登录</button>
+       </div>
+       <!-- 注册 -->
+       <div id="registerForm" style="display:none">
+         <div class="auth-field">
+           <input class="auth-input" id="regNick" placeholder="昵称（唯一，排行榜显示）" maxlength="20">
+           <span class="auth-check" id="nickCheck"></span>
+         </div>
+         <div class="nick-msg" id="nickMsg"></div>
+         <input class="auth-input" type="password" id="regPass" placeholder="密码（至少4位）" maxlength="50">
+         <input class="auth-input" type="password" id="regPass2" placeholder="确认密码" maxlength="50">
+         <div class="auth-err" id="regErr" style="display:none"></div>
+         <button class="auth-btn" id="registerSubmit">注册</button>
+       </div>
+     </div>
+   </div>
+
+   <!-- ===== 注册成功提示弹窗 ===== -->
+   <div class="modal-overlay hidden" id="successModal">
+     <div class="modal success-modal">
+       <div class="suc-icon">🎉</div>
+       <div class="suc-title">注册成功！</div>
+       <div class="suc-body">
+         <div class="suc-row"><span>昵称</span><strong id="sucNick"></strong></div>
+         <div class="suc-row"><span>ID</span><strong id="sucId"></strong></div>
+         <div class="suc-row"><span>密码</span><strong id="sucPass"></strong></div>
+       </div>
+       <div class="suc-warn">⚠️ 请截屏保存以上信息</div>
+       <div class="suc-hint">可通过昵称或ID在任意设备登录</div>
+       <button class="suc-btn" id="sucConfirm">确认</button>
+     </div>
+   </div>
+
+   <!-- stats -->
+   <div class="section-title">数据统计</div>
+   <div class="stats-grid">
+     <div class="stat-card"><div class="s-icon">🎯</div><div class="s-val gold" id="sGames">0</div><div class="s-lbl">总场次</div></div>
+     <div class="stat-card"><div class="s-icon">🏆</div><div class="s-val purple" id="sBest">0</div><div class="s-lbl">最高分</div></div>
+     <div class="stat-card"><div class="s-icon">💰</div><div class="s-val blue" id="sTotal">0</div><div class="s-lbl">累计总分</div></div>
+     <div class="stat-card"><div class="s-icon">📊</div><div class="s-val green" id="sAvg">0</div><div class="s-lbl">平均分</div></div>
+     <div class="stat-card"><div class="s-icon">🔥</div><div class="s-val pink" id="sStreak">0</div><div class="s-lbl">最佳连击</div></div>
+     <div class="stat-card"><div class="s-icon">🔗</div><div class="s-val orange" id="sPath">0</div><div class="s-lbl">单次最高</div></div>
+   </div>
+
+   <!-- achievements -->
+   <div class="section-title">成就</div>
+   <div class="ach-grid" id="achGrid"></div>
+
+   <!-- recent history -->
+   <div class="section-title">最近战绩</div>
+   <div class="history-wrap">
+     <table class="history-table">
+       <thead><tr><th>日期</th><th>回合</th><th>得分</th><th>连击</th><th>单次最高</th></tr></thead>
+       <tbody id="historyBody">
+         <tr><td colspan="5"><div class="history-empty">暂无记录</div></td></tr>
+       </tbody>
+     </table>
+   </div>
+   <div class="footer">色块连击 · 通路得分</div>
+ </div>
+
+ <script>
+   function getDeviceId(){
+     var p=localStorage.getItem('playerId');if(p)return p;
+     let id=localStorage.getItem('deviceId');
+     if(!id){id='player_'+Math.random().toString(36).substr(2,6);localStorage.setItem('deviceId',id)}
+     return id
+   }
+   function loadLB(){
+     try{const d=localStorage.getItem('cllb');return d?JSON.parse(d):[]}catch{return[]}
+   }
+   function fmt(n){return typeof n==='number'?n.toLocaleString():n}
+
+   // ---- 姓名管理 ----
+   function getPlayerName() {
+     return localStorage.getItem('playerName') || '';
+   }
+   function setPlayerName(name) {
+     localStorage.setItem('playerName', name);
+   }
+
+   function updateNameDisplay() {
+     const name = getPlayerName();
+     const display = document.getElementById('nameDisplay');
+     if (display) {
+       if (name) {
+         display.textContent = '🎮 ' + name;
+       } else {
+         display.textContent = '点击修改名字';
+       }
+     }
+   }
+
+   function openNameModal() {
+     const modal = document.getElementById('nameModal');
+     const input = document.getElementById('modalNameInput');
+     const error = document.getElementById('modalNameError');
+     modal.classList.remove('hidden');
+     input.value = getPlayerName();
+     error.style.display = 'none';
+     setTimeout(() => input.focus(), 100);
+     input.select();
+   }
+
+   function closeNameModal() {
+     document.getElementById('nameModal').classList.add('hidden');
+   }
+
+   function confirmName() {
+     const input = document.getElementById('modalNameInput');
+     const error = document.getElementById('modalNameError');
+     const name = input.value.trim();
+     if (!name) {
+       error.textContent = '⚠️ 昵称不能为空';
+       error.style.display = 'block';
+       return;
+     }
+     if (name.length > 20) {
+       error.textContent = '⚠️ 昵称不能超过20个字符';
+       error.style.display = 'block';
+       return;
+     }
+     error.style.display = 'none';
+     setPlayerName(name);
+     updateNameDisplay();
+     closeNameModal();
+     updateServerName(name);
+   }
+
+   function updateServerName(name) {
+     const deviceId = getDeviceId();
+     fetch('/api/update-name', {
+       method: 'POST',
+       headers: { 'Content-Type': 'application/json' },
+       body: JSON.stringify({ deviceId: deviceId, playerName: name })
+     })
+     .then(res => res.json())
+     .then(data => {
+       console.log('✅ 服务器昵称已更新');
+     })
+     .catch(err => {
+       console.error('❌ 更新服务器昵称失败：', err);
+     });
+   }
+
+   // ---- 成就系统 ----
+   const TIERS=[
+     {id:'games',icon:['🎮','📊','🏅','🏆'],name:['初次登场','十场磨砺','百战老手','五百精英'],reqs:[1,10,100,500]},
+     {id:'streak',icon:['🔥','💪','⚡','💥'],name:['连击新手','连击好手','连击达人','连击大师'],reqs:[3,5,10,20]},
+     {id:'score',icon:['🥉','🥈','🥇','💎','👑'],name:['百分新手','千分达人','万分传说','十万精英','百万传奇'],reqs:[100,1000,10000,100000,1000000]},
+     {id:'dist',icon:['🌱','🌿','🌳','🌲'],name:['短距起步','中距好手','长距达人','极距大师'],reqs:[2,4,7,12]},
+     {id:'maxHit',icon:['✨','⭐','🌟','💫','👁️'],name:['初露锋芒','小有成就','技高一筹','炉火纯青','登峰造极'],reqs:[20,60,150,350,800]},
+   ];
+   const tierDescs={games:['完成 1 场比赛','完成 10 场比赛','完成 100 场比赛','完成 500 场比赛'],streak:['达成 3 连击','达成 5 连击','达成 10 连击','达成 20 连击'],score:['单场得分 ≥ 100','单场得分 ≥ 1000','单场得分 ≥ 10000','单场得分 ≥ 100000','单场得分 ≥ 1000000'],dist:['最长距离 ≥ 2','最长距离 ≥ 4','最长距离 ≥ 7','最长距离 ≥ 12'],maxHit:['单次点击 ≥ 20','单次点击 ≥ 60','单次点击 ≥ 150','单次点击 ≥ 350','单次点击 ≥ 800']}
+
+   function getTier(lb,t){for(var i=t.reqs.length-1;i>=0;i--){if(t.id==='games'&&lb.length>=t.reqs[i])return i;if(t.id==='streak'&&lb.some(function(e){return e.bestStreak>=t.reqs[i]}))return i;if(t.id==='score'&&lb.some(function(e){return e.score>=t.reqs[i]}))return i;if(t.id==='dist'&&lb.some(function(e){return(e.maxDist||0)>=t.reqs[i]}))return i;if(t.id==='maxHit'&&lb.some(function(e){return(e.maxHit||0)>=t.reqs[i]}))return i;}return -1;}
+
+   function computeStats(lb){
+     const stats={games:lb.length,bestScore:0,totalScore:0,bestStreak:0,bestHit:0};
+     lb.forEach(e=>{
+       if(e.score>stats.bestScore)stats.bestScore=e.score;
+       stats.totalScore+=e.score;
+       if(e.bestStreak>stats.bestStreak)stats.bestStreak=e.bestStreak;
+       if((e.maxHit||0)>stats.bestHit)stats.bestHit=e.maxHit||0;
+     });
+     stats.avgScore=stats.games>0?Math.round(stats.totalScore/stats.games):0;
+     return stats;
+   }
+
+   function computeLevel(lb){
+     const pts=lb.length*3 + (lb.length>0?Math.floor(lb.reduce((s,e)=>s+e.score,0)/500):0);
+     if(pts<10)return{level:1,title:'色块新手',icon:'🌱'};
+     if(pts<30)return{level:2,title:'连击学徒',icon:'🔰'};
+     if(pts<60)return{level:3,title:'点击行者',icon:'🚶'};
+     if(pts<120)return{level:4,title:'色块大师',icon:'⚔️'};
+     if(pts<200)return{level:5,title:'连击宗师',icon:'🌟'};
+     if(pts<350)return{level:6,title:'连击尊者',icon:'👑'};
+     if(pts<600)return{level:7,title:'传说玩家',icon:'💎'};
+     return{level:8,title:'色块传奇',icon:'🏆'};
+   }
+
+   function render(lb){
+     const stats=computeStats(lb);
+     const lvl=computeLevel(lb);
+     document.getElementById('sGames').textContent=stats.games;
+     document.getElementById('sBest').textContent=fmt(stats.bestScore);
+     document.getElementById('sTotal').textContent=fmt(stats.totalScore);
+     document.getElementById('sAvg').textContent=fmt(stats.avgScore);
+     document.getElementById('sStreak').textContent=stats.bestStreak;
+     document.getElementById('sPath').textContent=stats.bestHit.toLocaleString();
+     const ag=document.getElementById('achGrid');
+     ag.innerHTML=TIERS.map(t=>{var cur=getTier(lb,t);var icon=cur>=0?t.icon[cur]:t.icon[0];var name2=cur>=0?t.name[cur]:t.name[0];var maxed=cur>=t.reqs.length-1;var desc=maxed?'✓ 已达成':'🔒 '+tierDescs[t.id][cur+1];return '<div class="ach-card '+(cur>=0?'unlocked':'locked')+'"><div class="ach-icon">'+icon+'</div><div class="ach-info"><div class="ach-name">'+name2+'</div><div class="ach-desc">'+desc+'</div></div></div>';}).join('');
+     const hb=document.getElementById('historyBody');
+     if(!lb.length){hb.innerHTML='<tr><td colspan="5"><div class="history-empty">暂无记录</div></td></tr>';}
+     else{
+       const recent=lb.slice(0,20);
+       hb.innerHTML=recent.map(e=>'<tr><td class="h-date">'+(e.date||(e.createdAt?new Date(e.createdAt).toLocaleDateString('zh-CN'):''))+'</td><td class="h-round">'+(e.round?'R'+e.round:'')+'</td><td class="h-score">'+fmt(e.score)+'</td><td class="h-streak">'+e.bestStreak+'</td><td class="h-path">'+(e.maxHit||0)+'</td></tr>').join('');
+     }
+     // 更新卡片显示（等级、昵称、ID）
+   }
+
+   // ---- 初始化 ----
+   // ---- 账号管理 ----
+   function isLoggedIn(){
+     return localStorage.getItem('playerId') ? true : false
+   }
+   function getPlayerId(){
+     var pid=localStorage.getItem('playerId');
+     if(pid)return pid;
+     return getDeviceId()
+   }
+   function getDeviceId(){
+     var id=localStorage.getItem('deviceId');
+     if(!id){id='player_'+Math.random().toString(36).substr(2,6);localStorage.setItem('deviceId',id)}
+     return id
+   }
+
+   var _nickTimer=null;
+
+   document.addEventListener('DOMContentLoaded', function() {
+     // ---- 加载数据 ----
+     function loadData(){
+       var pid=localStorage.getItem('playerId');
+       if(pid){
+         fetch('/api/personal?deviceId='+encodeURIComponent(pid))
+           .then(function(r){return r.json()})
+           .then(function(data){if(data&&data.length){render(data);updateCard();return}render([]);updateCard()})
+           .catch(function(){var lb=loadLB();if(lb.length){render(lb);updateCard()}});
+       }else{
+         var lb=loadLB();if(lb.length){render(lb);updateCard()}
+       }
+     }
+     loadData();
+
+     // ---- 昵称实时检查 ----
+     var _nickOk=false;
+     document.getElementById('regNick').addEventListener('input',function(){
+       var val=this.value.trim();
+       var msg=document.getElementById('nickMsg');
+       var ck=document.getElementById('nickCheck');
+       if(!val||val.length<1){msg.textContent='';ck.textContent='';_nickOk=false;return}
+       if(_nickTimer)clearTimeout(_nickTimer);
+       ck.textContent='⏳';
+       _nickTimer=setTimeout(function(){
+         fetch('/api/check-nickname',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({nickname:val})})
+           .then(function(r){return r.json()})
+           .then(function(data){
+             if(data.available){ck.textContent='✅';msg.textContent='昵称可用';msg.style.color='#34d399';_nickOk=true}
+             else{ck.textContent='❌';msg.textContent='昵称已被使用';msg.style.color='#f87171';_nickOk=false}
+           })
+           .catch(function(){ck.textContent='❓';msg.textContent='检查失败';msg.style.color='#f87171';_nickOk=false});
+       },400);
+     });
+
+     // ---- 账户卡片点击 ----
+     document.getElementById('profileCard').addEventListener('click',function(){
+       document.getElementById('authModal').classList.remove('hidden');
+     });
+
+     // ---- 弹窗标签切换 ----
+     var _authMode='login';
+     document.querySelectorAll('.auth-tab').forEach(function(btn){
+       btn.addEventListener('click',function(){
+         document.querySelectorAll('.auth-tab').forEach(function(b){b.classList.remove('active')});
+         btn.classList.add('active');
+         _authMode=btn.dataset.tab;
+         document.getElementById('loginForm').style.display=_authMode==='login'?'block':'none';
+         document.getElementById('registerForm').style.display=_authMode==='register'?'block':'none';
+         document.getElementById('authErr').style.display='none';
+         document.getElementById('regErr').style.display='none';
+       });
+     });
+
+     // ---- 登录 ----
+     document.getElementById('loginSubmit').addEventListener('click',function(){
+       var acc=document.getElementById('loginAccount').value.trim();
+       var pass=document.getElementById('loginPass').value;
+       var err=document.getElementById('authErr');
+       if(!acc){err.textContent='请输入昵称或ID';err.style.display='block';return}
+       if(!pass){err.textContent='请输入密码';err.style.display='block';return}
+       document.getElementById('loginSubmit').disabled=true;
+       document.getElementById('loginSubmit').textContent='处理中...';
+       fetch('/api/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({account:acc,password:pass,deviceId:getDeviceId()})})
+         .then(function(r){return r.json()})
+         .then(function(data){
+           document.getElementById('loginSubmit').disabled=false;
+           document.getElementById('loginSubmit').textContent='登录';
+           if(data.error){err.textContent=data.error;err.style.display='block';return}
+           localStorage.setItem('playerId',data.playerId);
+           localStorage.setItem('playerNickname',data.nickname);
+           location.reload();
+         })
+         .catch(function(){
+           document.getElementById('loginSubmit').disabled=false;
+           document.getElementById('loginSubmit').textContent='登录';
+           err.textContent='网络错误';err.style.display='block';
+         });
+     });
+
+     // ---- 注册 ----
+     document.getElementById('registerSubmit').addEventListener('click',function(){
+       var nick=document.getElementById('regNick').value.trim();
+       var pass=document.getElementById('regPass').value;
+       var pass2=document.getElementById('regPass2').value;
+       var err=document.getElementById('regErr');
+       if(!nick){err.textContent='请输入昵称';err.style.display='block';return}
+       if(nick.length>20){err.textContent='昵称不能超过20个字符';err.style.display='block';return}
+       if(!_nickOk){err.textContent='昵称不可用或还未检查';err.style.display='block';return}
+       if(!pass||pass.length<4){err.textContent='密码至少4位';err.style.display='block';return}
+       if(pass!==pass2){err.textContent='两次密码不一致';err.style.display='block';return}
+       document.getElementById('registerSubmit').disabled=true;
+       document.getElementById('registerSubmit').textContent='处理中...';
+       fetch('/api/register',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({nickname:nick,password:pass,deviceId:getDeviceId()})})
+         .then(function(r){return r.json()})
+         .then(function(data){
+           document.getElementById('registerSubmit').disabled=false;
+           document.getElementById('registerSubmit').textContent='注册';
+           if(data.error){err.textContent=data.error;err.style.display='block';return}
+           // 显示成功弹窗
+           document.getElementById('authModal').classList.add('hidden');
+           document.getElementById('sucNick').textContent=data.nickname;
+           document.getElementById('sucId').textContent=data.playerId;
+           document.getElementById('sucPass').textContent=pass;
+           document.getElementById('successModal').classList.remove('hidden');
+           localStorage.setItem('playerId',data.playerId);
+           localStorage.setItem('playerNickname',data.nickname);
+           localStorage.setItem('playerName',data.nickname); // 排行榜显示用
+         })
+         .catch(function(){
+           document.getElementById('registerSubmit').disabled=false;
+           document.getElementById('registerSubmit').textContent='注册';
+           err.textContent='网络错误';err.style.display='block';
+         });
+     });
+
+     // ---- 注册成功弹窗确认 ----
+     document.getElementById('sucConfirm').addEventListener('click',function(){
+       document.getElementById('successModal').classList.add('hidden');
+       // 同步昵称到排行榜
+       fetch('/api/update-name',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({deviceId:localStorage.getItem('playerId'),playerName:localStorage.getItem('playerName')||localStorage.getItem('playerNickname')})}).catch(function(){});
+       location.reload();
+     });
+
+
+
+     // ---- 更新卡片显示 ----
+     function updateCard(){
+       var pid=localStorage.getItem('playerId');
+       if(pid&&pid.substring(0,5)==='user_'){
+         localStorage.removeItem('playerId');localStorage.removeItem('playerNickname');pid=null;
+       }
+       var nick=localStorage.getItem('playerNickname')||localStorage.getItem('playerName')||'';
+       var display=document.getElementById('pcNickDisplay');
+       var sub=document.getElementById('pcSubDisplay');
+       var card=document.getElementById('profileCard');
+       if(pid){
+         display.textContent=nick||'已绑定';
+         sub.innerHTML='<span class="id-badge">ID: '+pid+'</span>';
+         card.style.cursor='default';
+       }else{
+         display.textContent='点击绑定账号';
+         sub.textContent='✨ 注册后可跨设备同步数据';
+         card.style.cursor='pointer';
+       }
+     }
+     updateCard();
+
+     // ---- 弹窗点击背景关闭 ----
+     document.getElementById('authModal').addEventListener('click',function(e){
+       if(e.target===this){this.classList.add('hidden')}
+     });
+     document.getElementById('successModal').addEventListener('click',function(e){
+       if(e.target===this){document.getElementById('sucConfirm').click()}
+     });
+
+     // ---- 回车提交 ----
+     document.getElementById('loginPass').addEventListener('keydown',function(e){
+       if(e.key==='Enter')document.getElementById('loginSubmit').click()
+     });
+     document.getElementById('regPass2').addEventListener('keydown',function(e){
+       if(e.key==='Enter')document.getElementById('registerSubmit').click()
+     });
+   });
+</script>
+ </body>
+ </html>

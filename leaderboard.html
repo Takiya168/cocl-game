@@ -1,0 +1,272 @@
+ <!DOCTYPE html>
+ <html lang="zh-CN">
+ <head>
+ <meta charset="UTF-8">
+ <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
+ <title>排行榜 · 色块连击</title>
+ <style>
+   *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+   body{
+     background:#0f0f1a;
+     color:#e0e0e0;
+     font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
+     min-height:100vh;
+     display:flex;
+     justify-content:center;
+     padding:20px;
+   }
+   .app{
+     width:100%;
+     max-width:600px;
+     padding-top:20px;
+     padding-bottom:40px;
+   }
+   .page-header{
+     display:flex;
+     align-items:center;
+     gap:12px;
+     margin-bottom:20px;
+   }
+   .btn-back{
+     width:40px;height:40px;border-radius:12px;
+     border:none;background:#2a2a4a;color:#c0c0f0;
+     font-size:18px;cursor:pointer;
+     display:flex;align-items:center;justify-content:center;
+     text-decoration:none;transition:background .2s;
+     flex-shrink:0;
+   }
+   .btn-back:hover{background:#3a3a5a}
+   .page-title{
+     font-size:24px;font-weight:800;
+     background:linear-gradient(135deg,#fbbf24,#f59e0b);
+     -webkit-background-clip:text;
+     -webkit-text-fill-color:transparent;
+     background-clip:text;
+   }
+   .page-sub{font-size:12px;color:#555;margin-left:auto}
+   /* ===== filter bar ===== */
+   .filter-bar{
+     display:flex;
+     align-items:center;
+     gap:8px;
+     margin-bottom:16px;
+     flex-wrap:wrap;
+   }
+   .filter-btn{
+     border:none;padding:6px 14px;border-radius:8px;
+     font-size:12px;font-weight:600;cursor:pointer;
+     background:#2a2a4a;color:#888;
+     transition:all .15s;
+   }
+   .filter-btn:hover{background:#3a3a5a;color:#c0c0f0}
+   .filter-btn.active{background:#6d28d9;color:#fff}
+   .filter-info{
+     font-size:11px;color:#555;
+     margin-left:auto;white-space:nowrap;
+   }
+   /* ===== leaderboard ===== */
+   .lb-empty{
+     background:#1a1a2e;
+     border-radius:16px;
+     padding:60px 20px;
+     text-align:center;
+     color:#444;font-size:14px;
+   }
+   .lb-empty .ico{font-size:48px;display:block;margin-bottom:12px;opacity:.3}
+   .lb-list{list-style:none}
+   .lb-item{
+     background:#1a1a2e;
+     border-radius:14px;
+     margin-bottom:6px;
+     padding:12px 16px;
+     display:flex;
+     align-items:center;
+     gap:12px;
+     animation:slideIn .3s ease both;
+     transition:background .15s;
+   }
+   .lb-item:hover{background:#1e1e36}
+   @keyframes slideIn{
+     from{opacity:0;transform:translateX(-12px)}
+     to{opacity:1;transform:translateX(0)}
+   }
+   .lb-rank{
+     width:34px;height:34px;border-radius:50%;
+     display:flex;align-items:center;justify-content:center;
+     font-size:14px;font-weight:800;
+     background:#22223a;color:#888;
+     flex-shrink:0;
+   }
+   .lb-rank.rank-gold{background:linear-gradient(135deg,#fbbf24,#f59e0b);color:#1a1a2e}
+   .lb-rank.rank-silver{background:linear-gradient(135deg,#94a3b8,#64748b);color:#1a1a2e}
+   .lb-rank.rank-bronze{background:linear-gradient(135deg,#d97706,#b45309);color:#1a1a2e}
+   .lb-info{flex:1;min-width:0}
+   .lb-score{font-size:18px;font-weight:700;color:#fbbf24}
+   .lb-meta{font-size:11px;color:#555;margin-top:3px;display:flex;gap:12px;flex-wrap:wrap}
+   .lb-meta span{display:inline-flex;align-items:center;gap:3px}
+   .lb-meta .lbl{color:#666}
+   .lb-meta .v-purple{color:#c084fc}
+   .lb-meta .v-blue{color:#60a5fa}
+   .lb-meta .v-green{color:#34d399}
+   .lb-date{font-size:10px;color:#444;white-space:nowrap;margin-left:auto;flex-shrink:0}
+   /* ===== actions ===== */
+   .footer{
+     text-align:center;margin-top:16px;
+     font-size:11px;color:#333;
+   }
+   /* ===== podium ===== */
+   .podium{
+     display:flex;
+     gap:8px;
+     margin-bottom:16px;
+   }
+   .podium-card{
+     flex:1;
+     background:#1a1a2e;
+     border-radius:14px;
+     padding:16px 10px;
+     text-align:center;
+     position:relative;
+     overflow:hidden;
+   }
+   .podium-card.gold{background:linear-gradient(180deg,#1a1a2e,#2a2410)}
+   .podium-card.silver{background:linear-gradient(180deg,#1a1a2e,#1a222e)}
+   .podium-card.bronze{background:linear-gradient(180deg,#1a1a2e,#2a1a10)}
+   .podium-rank{font-size:24px;margin-bottom:4px}
+   .podium-score{font-size:20px;font-weight:800;color:#fbbf24}
+   .podium-meta{font-size:10px;color:#555;margin-top:4px}
+   .podium-medal{
+     position:absolute;top:-8px;right:-8px;
+     font-size:36px;opacity:.15;
+   }
+   .podium-empty{color:#444;font-size:12px;padding:20px 0}
+   .lb-item.highlight{
+     background:linear-gradient(135deg,#1e1e36,#2a1a4e);
+     border:1px solid rgba(124,58,237,.3);
+     box-shadow:0 0 12px rgba(124,58,237,.1);
+   }
+   .lb-item.highlight .lb-rank{
+     background:#7c3aed;color:#fff;
+     box-shadow:0 0 8px rgba(124,58,237,.4);
+   }
+   .lb-item.highlight .lb-info .lb-score::after{
+     content:' · 我';
+     font-size:11px;color:#c084fc;font-weight:600;
+   }
+   .podium-card.me{
+     border:1px solid rgba(124,58,237,.4);
+     box-shadow:0 0 16px rgba(124,58,237,.15);
+   }
+   @media(max-width:480px){
+     .lb-item{padding:10px 12px;border-radius:12px}
+     .lb-score{font-size:15px}
+     .lb-rank{width:28px;height:28px;font-size:12px}
+     .lb-meta{font-size:10px;gap:8px}
+     .lb-date{display:none}
+     .podium{flex-direction:column;gap:6px}
+     .podium-card{padding:12px;display:flex;align-items:center;gap:12px;text-align:left}
+     .podium-score{font-size:16px}
+     .podium-medal{display:none}
+     .page-title{font-size:20px}
+   }
+ </style>
+ </head>
+ <body>
+ <div class="app">
+   <div class="page-header">
+     <a class="btn-back" href="index.html">←</a>
+     <div class="page-title">🏅 排行榜</div>
+     <div class="page-sub">回合得分排名</div>
+   </div>
+   <!-- filter -->
+   <div class="filter-bar">
+     <button class="filter-btn active" data-sort="score">得分</button>
+     <button class="filter-btn" data-sort="streak">连击</button>
+     <button class="filter-btn" data-sort="maxHit">单次最高</button>
+     <button class="filter-btn" data-sort="games">场次</button>
+     <span class="filter-info" id="filterInfo">共 0 条记录</span>
+   </div>
+   <!-- podium -->
+   <div class="podium" id="podium"></div>
+   <!-- list -->
+   <div id="lbBody"><div class="lb-empty"><span class="ico">🏅</span>暂无记录</div></div>
+   <!-- actions -->
+   <div class="footer">色块连击 · 通路得分</div>
+ </div>
+ <script>
+   function getDeviceId(){
+     var p=localStorage.getItem('playerId');if(p)return p;
+     let id=localStorage.getItem('deviceId');
+     if(!id){id='player_'+Math.random().toString(36).substr(2,6);localStorage.setItem('deviceId',id)}
+     return id
+   }
+   let sortMode='score';
+   let allData=[];
+
+   function loadFromServer(){
+     const body=document.getElementById('lbBody');
+     body.innerHTML='<div class="lb-empty"><span class="ico">🏅</span>加载中...</div>';
+     fetch('/api/rank')
+       .then(function(r){return r.json()})
+       .then(function(data){allData=data;render()})
+       .catch(function(){body.innerHTML='<div class="lb-empty"><span class="ico">🏅</span>加载失败</div>'})
+   }
+
+   function fmt(n){return typeof n==='number'?n.toLocaleString():n}
+
+   function render(){
+     const lb=allData;
+     let sorted=[].concat(lb);
+     if(sortMode==='score')sorted.sort(function(a,b){return b.score-a.score});
+     else if(sortMode==='streak')sorted.sort(function(a,b){return b.bestStreak-a.bestStreak});
+     else if(sortMode==='maxHit')sorted.sort(function(a,b){return b.maxHit-a.maxHit});
+     else if(sortMode==='games')sorted.sort(function(a,b){return (b.totalGames||0)-(a.totalGames||0)});
+     document.getElementById('filterInfo').textContent='共 '+sorted.length+' 条记录';
+
+     const myDeviceId=getDeviceId();
+
+     // podium
+     const pd=document.getElementById('podium');
+     const top3=sorted.slice(0,3);
+     if(top3.length){
+       const medals=['🥇','🥈','🥉'];
+       const cls=['gold','silver','bronze'];
+       pd.innerHTML=top3.map(function(e,i){
+         const isMe=e.deviceId===myDeviceId;
+         return '<div class="podium-card '+cls[i]+(isMe?' me':'')+'"><div class="podium-medal">'+medals[i]+'</div><div class="podium-rank">'+medals[i]+'</div><div class="podium-score">'+fmt(e.score)+'</div><div class="podium-meta">'+e.playerName+(isMe?' (我)':'')+' · 连击'+e.bestStreak+' · 单次最高'+(e.maxHit||0)+'</div></div>'
+       }).join('');
+     } else {
+       pd.innerHTML='<div class="podium-empty">暂无前三甲</div>';
+     }
+
+     // list
+     const body=document.getElementById('lbBody');
+     if(!sorted.length){
+       body.innerHTML='<div class="lb-empty"><span class="ico">🏅</span>暂无记录</div>';
+       return;
+     }
+     let h='<ul class="lb-list">';
+     sorted.forEach(function(e,i){
+       const isMe=e.deviceId===myDeviceId;
+       const rc=i===0?'rank-gold':i===1?'rank-silver':i===2?'rank-bronze':'';
+       const d=e.createdAt?new Date(e.createdAt).toLocaleDateString('zh-CN'):'';
+       h+='<li class="lb-item'+(isMe?' highlight':'')+'" style="animation-delay:'+(i*20)+'ms"><div class="lb-rank '+(isMe?'':'')+rc+'">'+(i+1)+'</div><div class="lb-info"><div class="lb-score'+(isMe?' me':'')+'">'+fmt(e.score)+'</div><div class="lb-meta"><span>'+(isMe?'<b>'+e.playerName+'</b>':e.playerName)+'</span><span>连击 <span class="v-purple">'+e.bestStreak+'</span></span><span>单次最高 <span class="v-blue">'+(e.maxHit||0)+'</span></span><span>均分 <span class="v-green">'+e.avgPts+'</span></span></div></div><div class="lb-date">'+(e.totalGames||0)+'场</div></li>';
+     });
+     h+='</ul>';
+     body.innerHTML=h;
+   }
+
+   // filter buttons
+   document.querySelectorAll('.filter-btn').forEach(function(btn){
+     btn.addEventListener('click',function(){
+       document.querySelectorAll('.filter-btn').forEach(function(b){b.classList.remove('active')});
+       btn.classList.add('active');
+       sortMode=btn.dataset.sort;
+       render();
+     });
+   });
+
+   loadFromServer();
+ </script>
+ </body>
+ </html>
