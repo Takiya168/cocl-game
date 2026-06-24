@@ -87,21 +87,6 @@ API 默认监听 `http://127.0.0.1:3000`
 | GET  | `/api/rank` | 排行榜（每人最好成绩，前20） |
 | GET  | `/api/personal?deviceId=xxx` | 个人战绩 |
 
-## 彩蛋 ID
-
-注册时昵称或密码匹配特定条件，可获得固定 ID：
-
-| 条件 | ID |
-|------|----|
-| 昵称/密码含 `dream`、`chocolate`、`070208`、`ljx` | 520-1314 |
-| 昵称 `Takiya` | 520-070208 |
-| `wie0` | 051228 |
-| `Designant` | 050905 |
-| `pluvio` | 060920 |
-| `Martian148` | 041019 |
-| `XiaoMo247` | 030123 |
-| `寒殇冷离` | 060612 |
-| `Angelina` | zfy20051216 |
 
 ## License
 
