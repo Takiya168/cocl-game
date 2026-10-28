@@ -2,6 +2,9 @@
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
 <title>色块连击 · 通路得分</title>
 <style>
@@ -432,7 +435,7 @@ function sF(r,c,pts,ty,sub){
   el.style.left=(x+cs/2-20)+'px';el.style.top=(y+cs/2-8)+'px';
   wr.appendChild(el);setTimeout(()=>el.remove(),800);
 }
-function bestScore(){try{const d=localStorage.getItem("cllb");const lb=d?JSON.parse(d):[];return lb.length?Math.max(...lb.map(e=>e.score)).toLocaleString():"0"}catch{return"0"}} function uS(){se.textContent=sc;ske.textContent=sk;skb.classList.toggle('active',sk>=1);
+function bestScore(){try{const d=localStorage.getItem("cllb");const lb=d?JSON.parse(d):[];return lb.length?Math.max(...lb.map(e=>e.score)).toLocaleString():"0"}catch{return"0"}} function uS(){se.textContent=sc.toLocaleString();ske.textContent=sk;skb.classList.toggle('active',sk>=1);
 ce.textContent=tc;be.textContent=bs;pe.textContent=mh.toLocaleString();
  ae.textContent=tc>0?Math.round(sc/tc):0}
  function calcComboBonus(dt){
@@ -461,7 +464,7 @@ function cE(){if(cR()===0&&ra){ra=false;bst.disabled=true;setTimeout(()=>sS(),40
 function lL(){try{const d=localStorage.getItem(SK);return d?JSON.parse(d):[]}catch{return[]}}
 function sL(lb){try{localStorage.setItem(SK,JSON.stringify(lb.slice(0,ML)))}catch{}}
 function aL(s,bsk,pct,av,mh,md){const lb=lL();lb.push({score:s,bestStreak:bsk,pathCount:pct,avgPts:av,maxHit:mh,maxDist:md,date:new Date().toLocaleDateString("zh-CN")});lb.sort((a,b)=>b.score-a.score);sL(lb);return lb}
-function rL(lb){const me=getDeviceId();const bd=$('lbBody');if(!lb||!lb.length){bd.innerHTML='<div class="lb-empty">暂无记录</div>';return}let h='<ul class="lb-list">';lb.forEach((e,i)=>{const isMe=e.deviceId===me;const rc=i===0?'r1':i===1?'r2':i===2?'r3':'';const pn=e.playerName||'';const g=e.totalGames||0;h+='<li class="lb-item'+(isMe?' highlight':'')+'"><div class="lb-rank '+(isMe?'':'')+rc+'">'+(i+1)+'</div><div class="lb-info"><div class="lb-score'+(isMe?' me':'')+'">'+e.score.toLocaleString()+'</div><div class="lb-meta">'+(isMe?'<b>'+pn+'</b>':pn)+' · 连击'+e.bestStreak+' · 单次'+(e.maxHit||0)+' · '+g+'场</div></div></li>'});h+='</ul>';bd.innerHTML=h}function getDeviceId(){var p=localStorage.getItem('playerId');if(p)return p;let id=localStorage.getItem('deviceId');if(!id){id='player_'+Math.random().toString(36).substr(2,6);localStorage.setItem('deviceId',id)}return id}
+function rL(lb){const me=getDeviceId();const bd=$('lbBody');if(!lb||!lb.length){bd.innerHTML='<div class="lb-empty">暂无记录</div>';return}let h='<ul class="lb-list">';lb.forEach((e,i)=>{const isMe=e.deviceId===me;const rc=i===0?'r1':i===1?'r2':i===2?'r3':'';const pn=e.playerName||'';h+='<li class="lb-item'+(isMe?' highlight':'')+'"><div class="lb-rank '+(isMe?'':'')+rc+'">'+(i+1)+'</div><div class="lb-info"><div class="lb-score'+(isMe?' me':'')+'">'+e.score.toLocaleString()+'</div><div class="lb-meta">'+(isMe?'<b>'+pn+'</b>':pn)+' · 连击'+e.bestStreak+' · 单次'+(e.maxHit||0)+'</div></div></li>'});h+='</ul>';bd.innerHTML=h}function getDeviceId(){var p=localStorage.getItem('playerId');if(p)return p;let id=localStorage.getItem('deviceId');if(!id){id='player_'+Math.random().toString(36).substr(2,6);localStorage.setItem('deviceId',id)}return id}
 function sS(){if(sd)return;sd=true;const cl=T-cR(),av=tc>0?Math.round(sc/tc):0;
  $('sRound').textContent=sc.toLocaleString();
  $('sStreak').textContent=bs;

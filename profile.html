@@ -2,6 +2,9 @@
  <html lang="zh-CN">
  <head>
  <meta charset="UTF-8">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
  <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
  <title>个人主页 · 色块连击</title>
  <style>
@@ -641,6 +644,8 @@
            if(data.error){err.textContent=data.error;err.style.display='block';return}
            localStorage.setItem('playerId',data.playerId);
            localStorage.setItem('playerNickname',data.nickname);
+           localStorage.setItem("playerName",data.nickname);
+           fetch("/api/update-name",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({deviceId:data.playerId,playerName:data.nickname})}).catch(function(){});
            location.reload();
          })
          .catch(function(){
@@ -677,6 +682,8 @@
            document.getElementById('successModal').classList.remove('hidden');
            localStorage.setItem('playerId',data.playerId);
            localStorage.setItem('playerNickname',data.nickname);
+           localStorage.setItem("playerName",data.nickname);
+           fetch("/api/update-name",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({deviceId:data.playerId,playerName:data.nickname})}).catch(function(){});
            localStorage.setItem('playerName',data.nickname); // 排行榜显示用
          })
          .catch(function(){

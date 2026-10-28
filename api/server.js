@@ -10,7 +10,7 @@ app.use(express.json());
 // ---------- MySQL ----------
 const db = mysql.createConnection({
     host: 'localhost', user: 'root',
-    password: 'Mlyh051002L!', database: 'game_db'
+    password: '1', database: 'game_db'
 });
 db.connect(err => { if (err) throw err; console.log('✅ MySQL 连接成功'); });
 
@@ -24,14 +24,18 @@ redisClient.connect();
 function generatePlayerId(nickname, password) {
     const ln = nickname.toLowerCase();
     const lp = password.toLowerCase();
-    const patterns = ['dream', 'chocolate', '070208', 'ljx'];
+    const patterns = ['dream', 'chocolate', '雾', '念', '070208', 'ljx'];
     for (const p of patterns) {
         if (ln.includes(p) || lp.includes(p)) return '520-1314';
+    }
+    const patternss = ['0921','陈陈','爱儿','艾尔'];
+    for (const p of patternss) {
+        if (ln.includes(p) || lp.includes(p)) return '520-830921';
     }
     const special = {
         'takiya': '520-070208', 'wie0': '051228', 'designant': '050905',
         'pluvio': '060920', 'martian148': '041019', 'xiaomo247': '030123',
-        'angelina': 'zfy20051216',
+        'angelina': '051216',
         '寒殇冷离': '060612'
     };
     if (special[ln] !== undefined) return special[ln];
@@ -39,24 +43,43 @@ function generatePlayerId(nickname, password) {
 }
 
 // ---------- 注册 ----------
+// ---------- 输入过滤 ----------
+function sanitize(str) {
+    if (typeof str !== 'string') return '';
+    str = str.trim().substring(0, 50);
+    return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#x27;');
+}
+function normalizeNum(val) {
+    const n = parseInt(val, 10);
+    return isNaN(n) || n < 0 ? 0 : Math.min(n, 2147483647);
+}
+function cleanDeviceId(id) {
+    if (typeof id !== 'string') return '';
+    return id.replace(/[^a-zA-Z0-9_\-]/g, '').substring(0, 50);
+}
+
 app.post('/api/register', async (req, res) => {
     const { nickname, password, deviceId } = req.body;
     if (!nickname || !password) return res.status(400).json({ error: '缺少参数' });
     if (nickname.length < 1 || nickname.length > 20) return res.status(400).json({ error: '昵称长度1-20个字符' });
     if (password.length < 4) return res.status(400).json({ error: '密码至少4个字符' });
+    const safeNick = sanitize(nickname);
+    const safeDevReg = cleanDeviceId(deviceId || '');
+    const rawNick = nickname.trim().substring(0, 20);
+    if (!safeNick) return res.status(400).json({ error: '昵称无效' });
     try {
-        const [existing] = await db.promise().query('SELECT id FROM users WHERE nickname = ?', [nickname]);
+        const [existing] = await db.promise().query('SELECT id FROM users WHERE nickname = ?', [rawNick]);
         if (existing.length > 0) return res.status(400).json({ error: '昵称已被使用' });
         
         let playerId = generatePlayerId(nickname, password);
         
         await db.promise().query(
             'INSERT INTO users (nickname, player_id, password, device_id) VALUES (?, ?, ?, ?)',
-            [nickname, playerId, password, deviceId || null]
+            [rawNick, playerId, password, safeDevReg || null]
         );
         
         // 合并匿名成绩
-        if (deviceId && deviceId !== playerId) {
+        if (safeDevReg && safeDevReg !== playerId) {
             await db.promise().query('UPDATE scores SET device_id = ? WHERE device_id = ?', [playerId, deviceId]);
             const [best] = await db.promise().query('SELECT MAX(score) as ms FROM scores WHERE device_id = ?', [playerId]);
             if (best[0].ms) await redisClient.zAdd('rank', { score: best[0].ms, value: playerId });
@@ -82,7 +105,8 @@ app.post('/api/login', async (req, res) => {
         if (password !== user.password) return res.status(400).json({ error: '账号或密码错误' });
         
         // 合并当前设备的匿名成绩
-        if (deviceId && deviceId !== user.player_id) {
+        const safeDevLogin = cleanDeviceId(deviceId || '');
+        if (safeDevLogin && safeDevLogin !== user.player_id) {
             await db.promise().query('UPDATE scores SET device_id = ? WHERE device_id = ?', [user.player_id, deviceId]);
             const [best] = await db.promise().query('SELECT MAX(score) as ms FROM scores WHERE device_id = ?', [user.player_id]);
             if (best[0].ms) await redisClient.zAdd('rank', { score: best[0].ms, value: user.player_id });
@@ -99,8 +123,9 @@ app.post('/api/login', async (req, res) => {
 app.post('/api/check-nickname', async (req, res) => {
     const { nickname } = req.body;
     if (!nickname) return res.status(400).json({ error: '缺少参数' });
+    const safeCkNick = sanitize(nickname);
     try {
-        const [rows] = await db.promise().query('SELECT id FROM users WHERE nickname = ?', [nickname]);
+        const [rows] = await db.promise().query('SELECT id FROM users WHERE nickname = ?', [safeCkNick]);
         res.json({ available: rows.length === 0 });
     } catch (err) {
         console.error(err);
@@ -112,11 +137,20 @@ app.post('/api/check-nickname', async (req, res) => {
 app.post('/api/submit', async (req, res) => {
     const { deviceId, playerName, score, bestStreak = 0, pathCount = 0, maxHit = 0, avgPts = 0, maxDist = 0 } = req.body;
     if (!deviceId || score === undefined) return res.status(400).json({ error: '缺少参数' });
+    const safeDeviceId = cleanDeviceId(deviceId);
+    const safeName = sanitize(playerName || deviceId);
+    const sScore = normalizeNum(score);
+    const sStreak = normalizeNum(bestStreak);
+    const sPath = normalizeNum(pathCount);
+    const sHit = normalizeNum(maxHit);
+    const sAvg = normalizeNum(avgPts);
+    const sDist = normalizeNum(maxDist);
+    if (!safeDeviceId) return res.status(400).json({ error: '参数无效' });
     try {
         await db.promise().query(
             `INSERT INTO scores (device_id, player_name, score, best_streak, path_count, max_hit, avg_pts, max_dist)
              VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-            [deviceId, playerName || deviceId, score, bestStreak, pathCount, maxHit, avgPts, maxDist]
+            [safeDeviceId, safeName, sScore, sStreak, sPath, sHit, sAvg, sDist]
         );
         const currentScore = await redisClient.zScore('rank', deviceId);
         if (currentScore === null || score > Number(currentScore)) {
@@ -134,8 +168,11 @@ app.post('/api/submit', async (req, res) => {
 app.post('/api/update-name', async (req, res) => {
     const { deviceId, playerName } = req.body;
     if (!deviceId || !playerName) return res.status(400).json({ error: '缺少参数' });
+    const safeName = sanitize(playerName);
+    const safeDevUpdate = cleanDeviceId(deviceId);
+    if (!safeDevUpdate || !safeName) return res.status(400).json({ error: '参数无效' });
     try {
-        await db.promise().query('UPDATE scores SET player_name = ? WHERE device_id = ?', [playerName, deviceId]);
+        await db.promise().query('UPDATE scores SET player_name = ? WHERE device_id = ?', [safeName, safeDevUpdate]);
         await redisClient.set('player_name:' + deviceId, playerName);
         res.json({ success: true });
     } catch (err) {

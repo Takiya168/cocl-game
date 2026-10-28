@@ -2,6 +2,9 @@
  <html lang="zh-CN">
  <head>
  <meta charset="UTF-8">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
  <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
  <title>排行榜 · 色块连击</title>
  <style>
@@ -108,8 +111,7 @@
    .lb-meta .v-purple{color:#c084fc}
    .lb-meta .v-blue{color:#60a5fa}
    .lb-meta .v-green{color:#34d399}
-   .lb-date{font-size:10px;color:#444;white-space:nowrap;margin-left:auto;flex-shrink:0}
-   /* ===== actions ===== */
+      /* ===== actions ===== */
    .footer{
      text-align:center;margin-top:16px;
      font-size:11px;color:#333;
@@ -162,7 +164,6 @@
      .lb-score{font-size:15px}
      .lb-rank{width:28px;height:28px;font-size:12px}
      .lb-meta{font-size:10px;gap:8px}
-     .lb-date{display:none}
      .podium{flex-direction:column;gap:6px}
      .podium-card{padding:12px;display:flex;align-items:center;gap:12px;text-align:left}
      .podium-score{font-size:16px}
@@ -183,7 +184,6 @@
      <button class="filter-btn active" data-sort="score">得分</button>
      <button class="filter-btn" data-sort="streak">连击</button>
      <button class="filter-btn" data-sort="maxHit">单次最高</button>
-     <button class="filter-btn" data-sort="games">场次</button>
      <span class="filter-info" id="filterInfo">共 0 条记录</span>
    </div>
    <!-- podium -->
@@ -220,7 +220,6 @@
      if(sortMode==='score')sorted.sort(function(a,b){return b.score-a.score});
      else if(sortMode==='streak')sorted.sort(function(a,b){return b.bestStreak-a.bestStreak});
      else if(sortMode==='maxHit')sorted.sort(function(a,b){return b.maxHit-a.maxHit});
-     else if(sortMode==='games')sorted.sort(function(a,b){return (b.totalGames||0)-(a.totalGames||0)});
      document.getElementById('filterInfo').textContent='共 '+sorted.length+' 条记录';
 
      const myDeviceId=getDeviceId();
@@ -250,7 +249,7 @@
        const isMe=e.deviceId===myDeviceId;
        const rc=i===0?'rank-gold':i===1?'rank-silver':i===2?'rank-bronze':'';
        const d=e.createdAt?new Date(e.createdAt).toLocaleDateString('zh-CN'):'';
-       h+='<li class="lb-item'+(isMe?' highlight':'')+'" style="animation-delay:'+(i*20)+'ms"><div class="lb-rank '+(isMe?'':'')+rc+'">'+(i+1)+'</div><div class="lb-info"><div class="lb-score'+(isMe?' me':'')+'">'+fmt(e.score)+'</div><div class="lb-meta"><span>'+(isMe?'<b>'+e.playerName+'</b>':e.playerName)+'</span><span>连击 <span class="v-purple">'+e.bestStreak+'</span></span><span>单次最高 <span class="v-blue">'+(e.maxHit||0)+'</span></span><span>均分 <span class="v-green">'+e.avgPts+'</span></span></div></div><div class="lb-date">'+(e.totalGames||0)+'场</div></li>';
+       h+='<li class="lb-item'+(isMe?' highlight':'')+'" style="animation-delay:'+(i*20)+'ms"><div class="lb-rank '+(isMe?'':'')+rc+'">'+(i+1)+'</div><div class="lb-info"><div class="lb-score'+(isMe?' me':'')+'">'+fmt(e.score)+'</div><div class="lb-meta"><span>'+(isMe?'<b>'+e.playerName+'</b>':e.playerName)+'</span><span>连击 <span class="v-purple">'+e.bestStreak+'</span></span><span>单次最高 <span class="v-blue">'+(e.maxHit||0)+'</span></span><span>均分 <span class="v-green">'+e.avgPts+'</span></span></div></div></li>';
      });
      h+='</ul>';
      body.innerHTML=h;
